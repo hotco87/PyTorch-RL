@@ -63,7 +63,7 @@ class DQN(nn.Module):
         return action # 0과 1을 이용
 
     def replay_memory(self, s, a, r, s_):
-        transition = np.hstack((s, [a, r], s_)) # 4, 1, 1, 4 = size(10)
+        transition = np.hstack((s, a, r, s_)) # 4, 1, 1, 4 = size(10)
         index = self.memory_counter % MEMORY_CAPACITY # 2000step 마다 각각 메모리 갱신
         self.memory[index, :] = transition
         self.memory_counter += 1
@@ -77,10 +77,10 @@ class DQN(nn.Module):
         # batch 사이즈 만큼 transitions 을 뽑아냄.
         sample_index = np.random.choice(MEMORY_CAPACITY, BATCH_SIZE) # 메모리에서 랜덤 샘플링 할 index 추출, 32
         memory_batch = self.memory[sample_index, :] # 메모리 추출, (32,10), 32:배치사이즈, 10: s(4),a(1),r(1),s(4)
-        state_batch = torch.FloatTensor(memory_batch[:, :N_STATES]) #(32,4)
+        state_batch = torch.FloatTensor(memory_batch[:, :N_STATES]) # (32,4)
         action_batch = torch.LongTensor(memory_batch[:, N_STATES:N_STATES+1].astype(int)) # (32,1) : [[0],[1],[1],[0],....], (중의적으로 index의 의미를 가짐.)
-        reward_batch = torch.FloatTensor(memory_batch[:, N_STATES+1:N_STATES+2]) #(32,1)
-        next_state_batch = torch.FloatTensor(memory_batch[:, -N_STATES:]) #(32,4)
+        reward_batch = torch.FloatTensor(memory_batch[:, N_STATES+1:N_STATES+2]) # (32,1)
+        next_state_batch = torch.FloatTensor(memory_batch[:, -N_STATES:]) # (32,4)
 
         # cost function
         q_eval = self.eval_net(state_batch).gather(1, action_batch) # 실제 q값을 뽑아냄, [32,1], action batch(index)를 이용
