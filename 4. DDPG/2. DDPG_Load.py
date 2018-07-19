@@ -95,16 +95,10 @@ class DDPG(nn.Module):
     def get_action(self, state):
         state = torch.from_numpy(state).float()
         action = self.actor(state).detach().numpy() * R_ACTIONS
-        #action = action + self.ou.sample() * R_ACTIONS
         return action
 
 ddpg = DDPG()
-ddpg.load_state_dict(torch.load('./SaveModel/DDPG.pth'))
-# ddpg.load_state_dict(torch.load('./SaveModel/DDPG_save.pth'))
-#ddpg.actor.load_state_dict(torch.load('./SaveModel/DDPG_actor.pth'))
-#ddpg.critic.load_state_dict(torch.load('./SaveModel/DDPG_critic.pth'))
-# ddpg.actor.load_state_dict(torch.load('./SaveModel/DDPG_actor_save.pth'))
-# ddpg.critic.load_state_dict(torch.load('./SaveModel/DDPG_critic_save.pth'))
+ddpg.actor.load_state_dict(torch.load('./SaveModel/DDPG_actor.pth'))
 
 def main():
 
@@ -112,13 +106,12 @@ def main():
         state = env.reset()
         print(state)
         state = np.reshape(state, [1, N_STATES])
-        print(state)
+
         for t in range(20000):
             env.render()
             action = ddpg.get_action(state)
-
             next_state, reward, done, info = env.step([action])
-            print(reward)
+            state = np.reshape(next_state, [1, N_STATES])
 
             if done:
                 break

@@ -202,9 +202,7 @@ def main():
         if np.mean(total_reward_list[-3:]) > finish_reward:
             env.render()
             print("save model start")
-            torch.save(ddpg.state_dict(), './SaveModel/DDPG.pth')
             torch.save(ddpg.actor.state_dict(), './SaveModel/DDPG_actor.pth')
-            torch.save(ddpg.critic.state_dict(), './SaveModel/DDPG_critic.pth')
             plt.plot(list(range(len(total_reward_list))), total_reward_list, c="b", lw=3, ls="--")
             plt.xlabel("Episode"), plt.ylabel("Reward"), plt.title("Reward Graph")
             fig = plt.gcf()
@@ -213,10 +211,7 @@ def main():
 
             if np.mean(total_reward_list[-20:]) > (finish_reward+40):
                 print("finish")
-
-                torch.save(ddpg.state_dict(), './SaveModel/DDPG_save.pth')
                 torch.save(ddpg.actor.state_dict(), './SaveModel/DDPG_actor_save.pth')
-                torch.save(ddpg.critic.state_dict(), './SaveModel/DDPG_critic_save.pth')
                 flag = True
                 break
 

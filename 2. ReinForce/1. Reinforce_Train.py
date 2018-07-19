@@ -53,11 +53,11 @@ eps = np.finfo(np.float32).eps.item() # 분모값이 0이 되지 않기 위해 �
 # 0.4의 확률로 0이 나오게, 0.6의 확률b로 1이 나오게끔 확률을 세팅한다.
 
 def select_action(state):
-    state = torch.from_numpy(state).float().unsqueeze(0) # numpy to torch, +1 dimension  #dim=dim+input.dim()+1
-    probs = model(state) # Action(0,1)에 대한 확률 분포 (State->Model->Action)
+    state = torch.from_numpy(state).float().unsqueeze(0)    # numpy to torch, +1 dimension  #dim=dim+input.dim()+1
+    probs = model(state) # Action(0,1)에 대한 확률 분포   (State->Model->Action)
     m = Categorical(probs)
     action = m.sample()
-    model.saved_log_probs.append(m.log_prob(action)) # 추후 SGD 계산 편의를 위한 List
+    model.saved_log_probs.append(m.log_prob(action))       # 추후 SGD 계산 편의를 위한 List
     return action.item()
 
 
@@ -66,7 +66,6 @@ def finish_episode():
     policy_loss = []
     rewards = []
     for r in model.rewards[::-1]:
-        R1 = R
         R = r + 0.99 * R
         rewards.insert(0, R)
     rewards = torch.tensor(rewards)
@@ -88,16 +87,16 @@ def main():
         state = env.reset() # State 초기화
         total_reward = 0
         for t in range(700):
+            # env.render()
             action = select_action(state) # Action 선택
             state, reward, done, _ = env.step(action) # 1 Step 이동 (주어진 State에서 선택한 Action을 실행)
-            total_reward += reward
-            #env.render()
             model.rewards.append(reward) # 정책망에 Reward 값을 저장
+            total_reward += reward
             if done:
                 total_reward_list.append(total_reward)
                 break
-
         finish_episode()
+
         if i_episode % 10 == 0: # moving, average 에피소드 10번 마다 보여주기
             print(i_episode,"번째:",total_reward_list[-5:], ", mean:", np.mean(total_reward_list[-5:], dtype=int))
 

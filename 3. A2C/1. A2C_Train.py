@@ -59,14 +59,9 @@ def finish_episode():
     policy_losses = []
     value_losses = []
     rewards = []
-    # reward(0 or 1) 값을 이용하여 R(reward + gamma x R)을 계산
     for r in model.rewards[::-1]: # [::-1] 행렬의 순서를 바꾸어 출력하는 기능
         R = r + gamma * R
         rewards.insert(0, R)
-
-    # 1 episode 종료시점까지 step 수 만큼의 누적된 1에대한 gamma 값의 증가 연산
-    # ex) [[13.1254, 12.2479, 11.3615, 10.4662, 9.5618, 8.6483,7.7255, 6.7935, 5.8520, 4.9010, 3.9404, 2.9701, 1.9900, 1.0000]
-
     rewards = torch.tensor(rewards)
     rewards = (rewards - rewards.mean()) / (rewards.std() + eps) # Reward Clipping
     for (log_prob, value), r in zip(saved_actions, rewards):
@@ -77,7 +72,6 @@ def finish_episode():
     loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
     loss.backward()
     optimizer.step()
-
     del model.rewards[:]
     del model.saved_actions[:]
 
