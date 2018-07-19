@@ -144,7 +144,7 @@ class DDPG(nn.Module):
         # actor update
         self.actor_optimizer.zero_grad()
         pred_actions = self.actor(states)
-        actor_loss = self.critic(states, actions).mean()
+        actor_loss = self.critic(states, pred_actions).mean()
         actor_loss = -actor_loss
         actor_loss.backward()
         self.actor_optimizer.step()
