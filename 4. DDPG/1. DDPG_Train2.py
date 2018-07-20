@@ -133,9 +133,9 @@ class DDPG(nn.Module):
 
         # critic update
         self.critic_optimizer.zero_grad()
-        value = self.critic(states, actions) # 현재 state, action 으로 부터 critic1, 2 통과
-        next_actions = self.actor_target(next_states) # next_state 를 통해 action 예측
-        next_value = self.critic_target(next_states, next_actions) # next_state, next_action 으로 부터 critic1, 2 통과
+        value = self.critic(states, actions) # Main Network : 현재 state, action 으로 부터 critic1, 2 통과
+        next_actions = self.actor_target(next_states) # target network action = 다음 state 를 통해 action 예측
+        next_value = self.critic_target(next_states, next_actions) # target_networkd_q_value : 다음 state, 다음 action 으로 부터 critic1, 2 통과
         target = rewards + (1 - dones) * GAMMA * next_value # reward + gamma *V(s)
         critic_loss = F.mse_loss(value, target)
         critic_loss.backward()
