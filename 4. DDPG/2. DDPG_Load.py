@@ -28,7 +28,6 @@ ou_theta, ou_sigma, ou_mu = 0.15, 0.2, 0.0
 BATCH_SIZE = 64
 MEMORY_CAPACITY = 500000
 
-
 class OrnsteinUhlenbeckActionNoise(object):
     def __init__(self, action_dim, mu=0, theta=0.15, sigma=0.2):
         self.action_dim = action_dim
@@ -105,16 +104,16 @@ def main():
     for i_episode in count(1):
         state = env.reset()
         print(state)
-        state = np.reshape(state, [1, N_STATES])
 
         for t in range(20000):
             env.render()
             action = ddpg.get_action(state)
-            next_state, reward, done, info = env.step([action])
-            state = np.reshape(next_state, [1, N_STATES])
-
+            next_state, reward, done, info = env.step(action)
+            state = next_state
             if done:
                 break
+
+        print(i_episode)
 
 if __name__ == '__main__':
     main()

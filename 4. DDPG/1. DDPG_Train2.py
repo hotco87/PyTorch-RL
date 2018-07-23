@@ -1,12 +1,10 @@
 import sys
 import gym
 import torch
-import pylab
 import random
 import numpy as np
 from collections import deque
 from datetime import datetime
-from copy import deepcopy
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
