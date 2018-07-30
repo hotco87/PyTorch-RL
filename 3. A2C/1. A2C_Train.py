@@ -45,12 +45,12 @@ eps = np.finfo(np.float32).eps.item() # 분모값이 0이 되지 않기 위해 �
 
 # saved.actions 값에 action_log_prob(액션로그확률), state_value 저장(추후 계산(cost, GD)을 쉽게 하기 위함.)
 def select_action(state):
-    state = torch.from_numpy(state).float()
-    probs, state_value = model(state) # model을 통과한 return 값 (action, state_value)
+    state = torch.Tensor(state)         # torch.from_numpy(state).float()
+    probs, state_value = model(state)   # model을 통과한 return 값 (action, state_value)
     m = Categorical(probs)
     action = m.sample()
     model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
-    return action.item() # action을 선택
+    return action.item() # action 선택
 
 
 def finish_episode():
@@ -67,7 +67,7 @@ def finish_episode():
     for (log_prob, value), r in zip(saved_actions, rewards):
         reward = r - value.item() # Base line, final Gt
         policy_losses.append(-log_prob * reward)
-        value_losses.append(F.smooth_l1_loss(value, torch.tensor([r])))
+        value_losses.append(F.smooth_l1_loss(value, torch.tensor([r]))) # huber loss
     optimizer.zero_grad() #  모든 weight를 0 으로 초기화
     loss = torch.stack(policy_losses).sum() + torch.stack(value_losses).sum()
     loss.backward()
@@ -81,9 +81,9 @@ def main():
     for i_episode in count(1):
         total_reward = 0
         state = env.reset()
-        for t in range(700): # t = step
-            action = select_action(state) # state(input) -> model -> action(output1), state_value(output2)
-            state, reward, done, _ = env.step(action) # reward 1 or 0
+        for t in range(700):
+            action = select_action(state)               # state(input) -> model -> action(output1), state_value(output2)
+            state, reward, done, _ = env.step(action)   # reward 1 or 0
             total_reward += reward
             model.rewards.append(reward)
             if done:

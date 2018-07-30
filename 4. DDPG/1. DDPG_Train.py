@@ -1,4 +1,3 @@
-import sys
 import gym
 import torch
 import random
@@ -8,7 +7,6 @@ from datetime import datetime
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
-import gym.envs
 from itertools import count
 import matplotlib.pyplot as plt
 
@@ -100,7 +98,8 @@ class DDPG(nn.Module):
 
 
     def get_action(self, state):
-        state = torch.from_numpy(state).float() # numpy -> torch -> float
+        #state = torch.from_numpy(state).float() # numpy -> torch -> float
+        state = torch.Tensor(state)
         model_action = self.actor(state).detach().numpy() * R_ACTIONS # 1step(모델)을 지나가도 다른 그래프에 영향을 주지 않음. 새 객체를 만들어 원래 객체의 값만 복사
         action = model_action + self.ou.sample() * R_ACTIONS
         return action
@@ -164,8 +163,7 @@ def main():
         for t in range(700):
             action = ddpg.get_action(state)
             next_state, reward, done, info = env.step(action)
-            reward = float(reward)
-            ddpg.replay_memory(state, action, reward, next_state, done)
+            ddpg.replay_memory(state, action, float(reward), next_state, done)
             total_reward += reward
             state = next_state
 
