@@ -25,7 +25,6 @@ env = gym.make('CartPole-v5')
 env.seed(1)
 torch.manual_seed(1)
 
-
 class Policy(nn.Module):
     def __init__(self):
         super(Policy, self).__init__()

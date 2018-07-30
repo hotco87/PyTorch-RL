@@ -1,12 +1,10 @@
 import sys
 import gym
 import torch
-import pylab
 import random
 import numpy as np
 from collections import deque
 from datetime import datetime
-from copy import deepcopy
 import torch.nn as nn
 import torch.optim as optim
 import torch.nn.functional as F
@@ -29,10 +27,10 @@ GAMMA = 0.99
 TAU = 1e-3
 ou_theta, ou_sigma, ou_mu = 0.15, 0.2, 0.0
 BATCH_SIZE = 64
-MEMORY_CAPACITY = 500000
+MEMORY_CAPACITY = 50000
 
 
-class OrnsteinUhlenbeckActionNoise(object):
+class OrnsteinUhlenbeckActionNoise(object): # Select Action Exploration (Noise)
     def __init__(self, action_dim, mu=0, theta=0.15, sigma=0.2):
         self.action_dim = action_dim
         self.mu = mu
@@ -97,6 +95,7 @@ class DDPG(nn.Module):
         self.critic_optimizer = optim.Adam(self.critic.parameters(), lr=CRITIC_LR)
 
         self.memory = deque(maxlen=MEMORY_CAPACITY)
+        self.memory_counter = 0
         self.ou = OrnsteinUhlenbeckActionNoise(theta=ou_theta, sigma=ou_sigma, mu=ou_mu, action_dim=N_ACTIONS) # explortion
 
 
@@ -107,53 +106,48 @@ class DDPG(nn.Module):
         return action
 
     def update_target_model(self):  # soft_update
-        target = self.actor_target
-        source = self.actor
-        for target_param, param in zip(target.parameters(), source.parameters()):
-            target_param.data.copy_(target_param.data * (1.0 - TAU) + param.data * TAU)
+        target = [self.actor_target, self.critic_target]
+        source = [self.actor,self.critic]
+        for t,s in zip(target,source) :
+            for target_param, param in zip(t.parameters(), s.parameters()):
+                target_param.data.copy_(target_param.data * (1.0 - TAU) + param.data * TAU)
 
-        target = self.critic_target
-        source = self.critic
-        for target_param, param in zip(target.parameters(), source.parameters()):
-            target_param.data.copy_(target_param.data * (1.0 - TAU) + param.data * TAU)
-
-    def append_sample(self, state, action, reward, next_state, done):
-        self.memory.append((deepcopy(state), action, reward, deepcopy(next_state), done))
+    def replay_memory(self, s, a, r, s_, d):
+        self.memory.append((s, a, r, s_, d))
+        self.memory_counter += 1
 
     def _get_sample(self, BATCH_SIZE):
         return random.sample(self.memory, BATCH_SIZE)
 
     def train(self):
-        minibatch = np.array(self._get_sample(BATCH_SIZE)).transpose()
+        memory_batch = random.sample(self.memory, BATCH_SIZE)
+        memory_batch = np.array(memory_batch).transpose()
 
-        states = np.vstack(minibatch[0])
-        actions = np.vstack(minibatch[1])
-        rewards = np.vstack(minibatch[2])
-        next_states = np.vstack(minibatch[3])
-        dones = np.vstack(minibatch[4].astype(int))
-
-        rewards = torch.Tensor(rewards)
-        dones = torch.Tensor(dones)
-        actions = torch.Tensor(actions)
+        states = torch.from_numpy(np.vstack(memory_batch[0])).float()            # (64,3)
+        actions = torch.from_numpy(np.vstack(memory_batch[1])).float()           # (64,1)
+        rewards = torch.from_numpy(np.vstack(memory_batch[2])).float()           # (64,1)
+        next_states = torch.from_numpy(np.vstack(memory_batch[3])).float()       # (64,3)
+        dones = torch.from_numpy(np.vstack(memory_batch[4].astype(int))).float() # 64
 
         # critic update
         self.critic_optimizer.zero_grad()
-        states = torch.Tensor(states)
-        next_states = torch.Tensor(next_states)
-        next_actions = self.actor_target(next_states)
-
-        pred = self.critic(states, actions)
-        next_pred = self.critic_target(next_states, next_actions)
-
-        target = rewards + (1 - dones) * GAMMA * next_pred
-        critic_loss = F.mse_loss(pred, target)
+        value = self.critic(states, actions)                         # Main Net             -> transition의 (state,action) 을 critic 통과
+        next_actions = self.actor_target(next_states)                # Target_Net action    -> next_state 를 통과하여 action 예측
+        next_value = self.critic_target(next_states, next_actions)   # Target_Net Q_value   -> next_state, next_action 으로 부터 critic1, 2 통과
+        # next_actions, next_value, next_value 는 새롭게 구함.
+        # s,a,r,s'  = s,a   -> v (cur_value)
+        # s'      ->  actor_target   -> a'(next_actions)
+        # s', a'  ->  critic_target  -> v'(next_value)
+        # s,a,r,s'  = s',a' -> v'(next_value)
+        target = rewards + (1 - dones) * GAMMA * next_value          # reward + gamma *V'
+        critic_loss = F.mse_loss(value, target)                      # (reward + gamma *V' - v)^2
         critic_loss.backward()
         self.critic_optimizer.step()
 
         # actor update
         self.actor_optimizer.zero_grad()
-        pred_actions = self.actor(states)
-        actor_loss = self.critic(states, pred_actions).mean()
+        pred_actions = self.actor(states)                       # s -> actor -> a        # for back_prob, action을 다시 예측
+        actor_loss = self.critic(states, pred_actions).mean()   # s,a -> critic -> value
         actor_loss = -actor_loss
         actor_loss.backward()
         self.actor_optimizer.step()
@@ -162,27 +156,20 @@ ddpg = DDPG()
 
 def main():
     total_reward_list = []
-    memory_counter = 0
     finish_reward = -130
-
     for i_episode in count(1):
         total_reward = 0
         state = env.reset()   # [ , , ] = (3,)
-        state = np.reshape(state, [1, N_STATES]) # [[ , , ]], (1,3)
 
         for t in range(700):
-            memory_counter += 1
             action = ddpg.get_action(state)
-
-            next_state, reward, done, info = env.step([action])
-            next_state = np.reshape(next_state, [1, N_STATES])
-            reward = float(reward[0, 0])
-            ddpg.append_sample(state, action, reward, next_state, done)
-
+            next_state, reward, done, info = env.step(action)
+            reward = float(reward)
+            ddpg.replay_memory(state, action, reward, next_state, done)
             total_reward += reward
             state = next_state
 
-            if memory_counter > BATCH_SIZE: # BATCH_SIZE(64) 이상일 때 부터 train 시작
+            if ddpg.memory_counter > BATCH_SIZE: # BATCH_SIZE(64) 이상일 때 부터 train 시작
                 ddpg.train()
                 ddpg.update_target_model()
 
