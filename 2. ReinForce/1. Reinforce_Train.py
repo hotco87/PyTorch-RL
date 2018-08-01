@@ -78,8 +78,7 @@ def finish_episode():
     optimizer.step()                            # Wight Update
     del model.rewards[:]
     del model.saved_log_probs[:]
-# Reward Clipping
-# 3번 움직였을 때(3episode)  = (1), ( (1+1)+ + 0.99*+1) + ((1+1+1) + 0.99 * 1 +0.99^2*1)
+
 
 def main():
     total_reward_list = []

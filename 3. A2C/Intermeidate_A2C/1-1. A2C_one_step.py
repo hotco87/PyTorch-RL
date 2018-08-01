@@ -85,19 +85,16 @@ def select_action(state):
     return action.item()
 
 def train_one_step(reward, next_state, done):
-
+    # reward + gamma * V(s') - V(s)
     cur_value = model.cur_value
-    next_state = torch.from_numpy(next_state).float()
-    next_value = model.critic(next_state)
-
+    next_value = model.critic(torch.Tensor(next_state))
     reward = torch.tensor(reward)
-    #reward = (rewards - rewards.mean()) / (rewards.std() + eps)
 
     policy_losses = []
     value_losses = []
 
     if done:
-        advantage = reward - cur_value
+        advantage = reward #- cur_value
         target = reward
     else:
         advantage = (reward + 0.99 * next_value) - cur_value
@@ -116,9 +113,8 @@ def train_one_step(reward, next_state, done):
 
     model.critic_optim.zero_grad()
     loss2 = torch.stack(value_losses).sum()
-    loss2.backward(retain_graph=True)
+    loss2.backward()
     model.critic_optim.step()
-
 
 
 def main():
@@ -142,7 +138,6 @@ def main():
             print(i_episode,"번째:",total_reward_list[-5:], ", mean:", np.mean(total_reward_list[-5:], dtype=int))
 
         # evaluation
-
         if i_episode % 5 == 0:
             print(i_episode,"번째:",total_reward_list[-5:], ", mean:", np.mean(total_reward_list[-5:], dtype=int))
 

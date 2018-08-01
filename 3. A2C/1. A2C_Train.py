@@ -48,9 +48,9 @@ def select_action(state):
     state = torch.Tensor(state)         # torch.from_numpy(state).float()
     probs, state_value = model(state)   # model을 통과한 return 값 (action, state_value)
     m = Categorical(probs)
-    action = m.sample()
+    action = m.sample()                 # tensor(1)
     model.saved_actions.append(SavedAction(m.log_prob(action), state_value))
-    return action.item() # action 선택
+    return action.item()                # action 선택 = int(1)
 
 
 def finish_episode():

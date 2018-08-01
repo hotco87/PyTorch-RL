@@ -98,11 +98,11 @@ def finish_episode(rewards,next_state, done):
     value = model.values[0]
 
     if done:
-        advantage = rewards[1] - value
-        target = rewards[1]
+        advantage = rewards[0] - value
+        target = rewards[0]
     else:
-        advantage = (rewards[0] + args.gamma * (rewards[1] + args.gamma * next_value)) - value
-        target = rewards[0] + args.gamma * (rewards[1] + args.gamma * next_value)
+        advantage = (rewards[1] + args.gamma * (rewards[0] + args.gamma * next_value)) - value
+        target = rewards[1] + args.gamma * (rewards[0] + args.gamma * next_value)
 
     advantage = torch.tensor(advantage, requires_grad=True)
     target = torch.tensor(target, requires_grad=True)

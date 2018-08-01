@@ -45,7 +45,7 @@ class Net(nn.Module):
         prob = F.softmax(logits, dim=-1)#.data    # test.py # https://pytorch.org/docs/stable/nn.html#torch-nn-functional
         m = self.distribution(prob)
         action = m.sample()
-        return action.numpy()[0]    #continuous action도 고려하기 위해 numpy 로 변경 (np.int64) ## return m.sample.item()
+        return action.numpy()[0]    ##return m.sample.item() #continuous action도 고려하기 위해 numpy 로 변경 (np.int64)
 
     def loss_func(self, s, a, v_t):
         self.train()
